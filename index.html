@@ -387,6 +387,12 @@
         tarjetaInfo.classList.remove('visible');
         mostrarAviso('Modelo centrado');
       });
+  visor.addEventListener('load', () => {
+  if (visor.availableAnimations && visor.availableAnimations.length > 0) {
+    visor.animationName = visor.availableAnimations[0];
+    visor.play();
+  }
+});
     </script>
   </body>
 </html>
