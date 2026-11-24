@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <title>Guía de Ortodoncia | Clínica Dey-Dent - El Alto</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script type="module" src="https://googleapis.com"></script>
+    <style>
+      :root {
+        --azul-primario: #0066cc;
+        --azul-brillo: #0088ff;
+        --cristal: rgba(255, 255, 255, 0.90);
+        --borde-cristal: rgba(255, 255, 255, 0.75);
+        --sombra-suave: 0 8px 24px rgba(10, 30, 60, 0.16);
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0; width: 100%; height: 100%;
+        overflow: hidden; background: #eef2f6;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        touch-action: none; -webkit-tap-highlight-color: transparent;
+      }
+      #camara-fondo {
+        position: fixed; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 1; display: none; background: #000;
+      }
+      body.modo-camara { background: transparent; }
+      body.modo-camara #camara-fondo { display: block; }
+      model-viewer {
+        position: fixed !important; top: 0 !important; left: 0 !important;
+        width: 100vw !important; height: 100vh !important;
+        display: block !important; z-index: 2 !important;
+        background-color: transparent !important; --poster-color: transparent;
+      }
+      .overlay-guia {
+        position: fixed; inset: 0; z-index: 30;
+        background: rgba(10, 22, 40, 0.76); backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center; padding: 18px;
+      }
+      .overlay-guia.oculto { display: none; }
+      .modal-bienvenida {
+        background: #ffffff; color: #1e293b; border-radius: 26px;
+        max-width: 380px; width: 100%; padding: 24px 22px;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.32); text-align: center;
+      }
+      .badge-clinica {
+        display: inline-block; background: #e6f0fa; color: var(--azul-primario);
+        font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+        padding: 4px 12px; border-radius: 20px; margin-bottom: 8px;
+      }
+      .modal-bienvenida h2 { margin: 0 0 4px; font-size: 20px; color: #0f172a; font-weight: 700; }
+      .modal-bienvenida .sub { margin: 0 0 16px; font-size: 13px; color: #64748b; }
+      .lista-pasos { list-style: none; padding: 0; margin: 0 0 18px; text-align: left; display: flex; flex-direction: column; gap: 9px; }
+      .lista-pasos li {
+        display: flex; align-items: center; gap: 11px;
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        padding: 10px 12px; border-radius: 14px; font-size: 12.5px; line-height: 1.35; color: #334155;
+      }
+      .ico-paso {
+        width: 32px; height: 32px; min-width: 32px; border-radius: 10px;
+        background: linear-gradient(135deg, #e0efff, #cce3ff); color: var(--azul-primario);
+        display: flex; align-items: center; justify-content: center; font-weight: 700;
+      }
+      .btn-empezar {
+        background: linear-gradient(135deg, var(--azul-primario), var(--azul-brillo));
+        color: #fff; border: none; border-radius: 16px;
+        width: 100%; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0, 102, 204, 0.35);
+      }
+      .top-bar {
+        position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
+        display: flex; flex-direction: column; align-items: center; gap: 7px;
+        width: 92%; max-width: 420px; pointer-events: none;
+      }
+      .header-clinica {
+        background: var(--cristal); backdrop-filter: blur(12px);
+        border: 1px solid var(--borde-cristal);
+        padding: 8px 18px; border-radius: 18px; box-shadow: var(--sombra-suave);
+        text-align: center; pointer-events: auto;
+      }
+      .header-clinica h1 { margin: 0; font-size: 14.5px; color: #0f172a; font-weight: 700; }
+      .header-clinica p { margin: 2px 0 0; font-size: 11px; color: #475569; }
+      .btn-whatsapp {
+        background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; text-decoration: none;
+        padding: 8px 16px; border-radius: 50px; font-size: 12.5px; font-weight: 600;
+        box-shadow: 0 6px 18px rgba(22, 163, 74, 0.32); pointer-events: auto;
+        display: inline-flex; align-items: center; gap: 6px;
+      }
+      .hotspot {
+        background: linear-gradient(135deg, var(--azul-primario), var(--azul-brillo));
+        color: #fff; border: 2.5px solid #fff; border-radius: 50%;
+        width: 28px; height: 28px; font-weight: 700; font-size: 12.5px;
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.45); cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .hotspot.oculto { display: none !important; }
+      .hotspot-card {
+        display: none; position: fixed; bottom: 128px; left: 50%; transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.98); color: #334155;
+        padding: 13px 15px; border-radius: 16px; width: 88%; max-width: 340px;
+        text-align: left; font-weight: 400; font-size: 12.5px; line-height: 1.45;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25); border: 1px solid #e2e8f0; z-index: 25;
+      }
+      .hotspot-card.visible { display: block; }
+      .hotspot-card strong { display: block; color: var(--azul-primario); margin-bottom: 4px; font-size: 13.5px; font-weight: 700; }
+      .panel-lateral {
+        position: fixed; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .side-btn {
+        background: var(--cristal); backdrop-filter: blur(12px);
+        color: #1e293b; border: 1px solid var(--borde-cristal); border-radius: 16px;
+        padding: 10px 8px; font-size: 10.5px; font-weight: 700; cursor: pointer;
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        box-shadow: var(--sombra-suave); min-width: 58px; text-align: center;
+      }
+      .side-btn.activo {
+        background: linear-gradient(135deg, var(--azul-primario), var(--azul-brillo));
+        color: #fff; border-color: transparent;
+      }
+      .zona-anclar {
+        position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%); z-index: 12;
+        display: none; width: max-content; max-width: 94%;
+      }
+      .zona-anclar.visible { display: flex; }
+      .btn-anclar {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #fff; border: 1.5px solid rgba(255,255,255,0.85);
+        border-radius: 50px; padding: 11px 20px; font-size: 13px; font-weight: 700;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28); cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px;
+      }
+      .btn-anclar.anclado { background: linear-gradient(135deg, #059669, #10b981); }
+      .controles-bar {
+        position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 10;
+        display: flex; flex-wrap: nowrap; justify-content: center; gap: 5px;
+        background: var(--cristal); backdrop-filter: blur(14px);
+        border: 1px solid var(--borde-cristal);
+        padding: 6px 8px; border-radius: 20px; box-shadow: var(--sombra-suave);
+        width: max-content; max-width: 96%;
+      }
+      .ctrl-btn {
+        background: rgba(241, 245, 249, 0.9); color: #1e293b; border: 1px solid rgba(203, 213, 225, 0.7);
+        border-radius: 13px; padding: 7px 10px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; gap: 4px; white-space: nowrap;
+      }
+      .ctrl-btn.activo {
+        background: linear-gradient(135deg, var(--azul-primario), var(--azul-brillo));
+        color: #fff; border-color: transparent;
+      }
+      .toast-estado {
+        position: fixed; top: 108px; left: 50%; transform: translateX(-50%); z-index: 15;
+        background: rgba(15, 23, 42, 0.84); color: #fff; font-size: 11.5px; font-weight: 600;
+        padding: 6px 14px; border-radius: 20px; pointer-events: none;
+        opacity: 0; transition: opacity 0.25s ease; white-space: nowrap;
+      }
+      .toast-estado.visible { opacity: 1; }
+    </style>
+  </head>
+<body>
+    <video id="camara-fondo" autoplay playsinline muted></video>
+    <div class="toast-estado" id="toast-estado"></div>
+    <div class="hotspot-card" id="tarjeta-info"></div>
+
+    <div class="overlay-guia" id="overlay-bienvenida">
+      <div class="modal-bienvenida">
+        <span class="badge-clinica">El Alto · Bolivia</span>
+        <h2>Clínica Dental Dey-Dent</h2>
+        <p class="sub">Guía visual interactiva de Ortodoncia</p>
+        <ul class="lista-pasos">
+          <li>
+            <div class="ico-paso">3D</div>
+            <div><strong>Explora en 3D:</strong> Desliza sobre la dentadura o usa los botones inferiores para rotar, acercar y mover.</div>
+          </li>
+          <li>
+            <div class="ico-paso">1-5</div>
+            <div><strong>Toca los puntos (1 al 5):</strong> Conoce cómo funcionan tus brackets y el cuidado de tu sonrisa.</div>
+          </li>
+          <li>
+            <div class="ico-paso">RA</div>
+            <div><strong>En tu celular:</strong> Permite el acceso a tu cámara para proyectar la dentadura en tu entorno real.</div>
+          </li>
+        </ul>
+        <button class="btn-empezar" id="btn-iniciar-exp">Continuar</button>
+      </div>
+    </div>
+
+    <div class="top-bar" id="top-bar">
+      <div class="header-clinica">
+        <h1>Clínica Dental Dey-Dent · El Alto</h1>
+        <p>Toca los puntos numerados para descubrir cada etapa</p>
+      </div>
+      <a class="btn-whatsapp" href="https://wa.me" target="_blank" rel="noopener">
+        Agendar cita por WhatsApp
+      </a>
+    </div>
+
+    <div class="panel-lateral" id="panel-lateral">
+      <button class="side-btn activo" id="btn-toggle-puntos">
+        <span>Puntos:<br><strong id="txt-puntos">ON</strong></span>
+      </button>
+      <button class="side-btn" id="btn-ayuda">
+        <span>Ayuda</span>
+      </button>
+    </div>
+
+    <model-viewer
+      id="visor-dentadura"
+      src="ortodoncia-v1.glb"
+      poster="poster.webp"
+      alt="Modelo 3D de ortodoncia Clínica Dey-Dent"
+      camera-controls
+      touch-action="pan-y"
+      shadow-intensity="0"
+      exposure="1.05"
+      interaction-prompt="none"
+      camera-orbit="0deg 78deg 105%">
+
+      <button class="hotspot" slot="hotspot-1" data-position="0.015m 0.018m 0.032m" data-normal="0m 0m 1m" data-titulo="1. Brackets (Guía de cada diente)" data-texto="Pequeñas piezas adheridas con precisión a cada diente. No duelen al colocarse y sirven como guía para llevar tu sonrisa a su posición ideal.">1</button>
+      <button class="hotspot" slot="hotspot-2" data-position="-0.022m 0.016m 0.026m" data-normal="0m 0m 1m" data-titulo="2. Arco ortodóntico (Movimiento suave)" data-texto="Alambre flexible que conecta todos los brackets y ejerce una presión ligera y constante para alinear tus dientes paso a paso.">2</button>
+      <button class="hotspot" slot="hotspot-3" data-position="0.026m -0.012m 0.024m" data-normal="0m 0m 1m" data-titulo="3. Controles y ajustes mensuales" data-texto="En tus citas periódicas en Dey-Dent revisamos cómo avanzan tus dientes y realizamos los ajustes necesarios en los brackets para lograr tu sonrisa ideal.">3</button>
+      <button class="hotspot" slot="hotspot-4" data-position="-0.018m 0.028m 0.025m" data-normal="0m 1m 0m" data-titulo="4. Cuidado de dientes y encías" data-texto="Mantener una buena higiene con cepillo interdental e hilo dental evita inflamación de encías y protege tus dientes durante todo el tratamiento.">4</button>
+      <button class="hotspot" slot="hotspot-5" data-position="0m 0.002m 0.035m" data-normal="0m 0m 1m" data-titulo="5. Resultado: Mordida y sonrisa alineada" data-texto="Al finalizar, los dientes superiores e inferiores encajan correctamente, mejorando tanto la estética de tu sonrisa como tu masticación.">5</button>
+    </model-viewer>
+
+    <div class="zona-anclar" id="zona-anclar">
+      <button class="btn-anclar" id="btn-anclar">
+        <span id="ico-anclar">📌</span>
+        <span id="txt-anclar">Anclar en superficie</span>
+      </button>
+    </div>
+
+    <div class="controles-bar" id="controles-bar">
+      <button class="ctrl-btn activo" id="btn-rotar">↻ Rotar</button>
+      <button class="ctrl-btn" id="btn-zoom">🔍 Zoom</button>
+      <button class="ctrl-btn" id="btn-mover">✥ Mover</button>
+      <button class="ctrl-btn" id="btn-centrar">⌖ Centrar</button>
+    </div>
+<script>
+      const visor = document.getElementById('visor-dentadura');
+      const videoCamara = document.getElementById('camara-fondo');
+      const overlay = document.getElementById('overlay-bienvenida');
+      const btnIniciar = document.getElementById('btn-iniciar-exp');
+      const zonaAnclar = document.getElementById('zona-anclar');
+      const btnAnclar = document.getElementById('btn-anclar');
+      const txtAnclar = document.getElementById('txt-anclar');
+      const icoAnclar = document.getElementById('ico-anclar');
+      const btnTogglePuntos = document.getElementById('btn-toggle-puntos');
+      const txtPuntos = document.getElementById('txt-puntos');
+      const btnAyuda = document.getElementById('btn-ayuda');
+      const tarjetaInfo = document.getElementById('tarjeta-info');
+      const toast = document.getElementById('toast-estado');
+
+      let streamActivo = null;
+      let camaraEncendida = false;
+      let modeloAnclado = false;
+      let puntosVisibles = true;
+
+      const esCelular = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1 && window.innerWidth <= 1024);
+
+      function mostrarAviso(mensaje) {
+        toast.textContent = mensaje;
+        toast.classList.add('visible');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => toast.classList.remove('visible'), 2400);
+      }
+
+      async function activarCamaraCelular() {
+        if (!esCelular) return false;
+        if (camaraEncendida && streamActivo) return true;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false
+          });
+          streamActivo = stream;
+          videoCamara.srcObject = stream;
+          await videoCamara.play();
+          document.body.classList.add('modo-camara');
+          zonaAnclar.classList.add('visible');
+          camaraEncendida = true;
+          return true;
+        } catch (err) {
+          try {
+            const streamFallback = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            streamActivo = streamFallback;
+            videoCamara.srcObject = streamFallback;
+            await videoCamara.play();
+            document.body.classList.add('modo-camara');
+            zonaAnclar.classList.add('visible');
+            camaraEncendida = true;
+            return true;
+          } catch (e) {
+            document.body.classList.remove('modo-camara');
+            camaraEncendida = false;
+            mostrarAviso('Visor 3D activo');
+            return false;
+          }
+        }
+      }
+
+      btnIniciar.addEventListener('click', async () => {
+        overlay.classList.add('oculto');
+        if (esCelular && !camaraEncendida) {
+          await activarCamaraCelular();
+        }
+      });
+
+      btnAnclar.addEventListener('click', async () => {
+        if (!modeloAnclado) {
+          if (!camaraEncendida) await activarCamaraCelular();
+          modeloAnclado = true;
+          visor.removeAttribute('camera-controls');
+          btnAnclar.classList.add('anclado');
+          icoAnclar.textContent = '📷';
+          txtAnclar.textContent = 'Volver a cámara libre';
+          mostrarAviso('Modelo anclado sobre la superficie');
+        } else {
+          modeloAnclado = false;
+          visor.setAttribute('camera-controls', '');
+          btnAnclar.classList.remove('anclado');
+          icoAnclar.textContent = '📌';
+          txtAnclar.textContent = 'Anclar en superficie';
+          mostrarAviso('Cámara libre · Puedes rotar y mover');
+        }
+      });
+
+      const hotspots = document.querySelectorAll('.hotspot');
+      hotspots.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          tarjetaInfo.innerHTML = `<strong>${btn.getAttribute('data-titulo')}</strong>${btn.getAttribute('data-texto')}`;
+          tarjetaInfo.classList.add('visible');
+        });
+      });
+
+      visor.addEventListener('click', () => tarjetaInfo.classList.remove('visible'));
+
+      btnTogglePuntos.addEventListener('click', () => {
+        puntosVisibles = !puntosVisibles;
+        hotspots.forEach(h => h.classList.toggle('oculto', !puntosVisibles));
+        txtPuntos.textContent = puntosVisibles ? 'ON' : 'OFF';
+        btnTogglePuntos.classList.toggle('activo', puntosVisibles);
+        if (!puntosVisibles) tarjetaInfo.classList.remove('visible');
+      });
+
+      btnAyuda.addEventListener('click', () => overlay.classList.remove('oculto'));
+
+      const btnRotar = document.getElementById('btn-rotar');
+      const btnZoom = document.getElementById('btn-zoom');
+      const btnMover = document.getElementById('btn-mover');
+      const btnCentrar = document.getElementById('btn-centrar');
+
+      function marcarControl(activo) {
+        [btnRotar, btnZoom, btnMover].forEach(b => b.classList.remove('activo'));
+        if (activo) activo.classList.add('activo');
+      }
+
+      btnRotar.addEventListener('click', () => {
+        if (modeloAnclado) btnAnclar.click();
+        marcarControl(btnRotar);
+        mostrarAviso('Desliza para rotar');
+      });
+
+      btnZoom.addEventListener('click', () => {
+        if (modeloAnclado) btnAnclar.click();
+        marcarControl(btnZoom);
+        const orbit = visor.getCameraOrbit();
+        const nuevoRadio = Math.max(orbit.radius * 0.82, 0.08);
+        visor.cameraOrbit = `${orbit.theta}rad ${orbit.phi}rad ${nuevoRadio}m`;
+      });
+
+      btnMover.addEventListener('click', () => {
+        if (modeloAnclado) btnAnclar.click();
+        marcarControl(btnMover);
+        mostrarAviso('Usa dos dedos o clic derecho para mover');
+      });
+
+      btnCentrar.addEventListener('click', () => {
+        visor.cameraOrbit = '0deg 78deg 105%';
+        visor.cameraTarget = 'auto auto auto';
+        visor.fieldOfView = 'auto';
+        tarjetaInfo.classList.remove('visible');
+        mostrarAviso('Modelo centrado');
+      });
+    </script>
+  </body>
+</html>
